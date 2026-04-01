@@ -1,0 +1,33 @@
+{
+  "groups": [
+    {
+      "name": "jdbc-transactional-kafka-consumer",
+      "type": "nl.sophiasoftware.jdbctransactionalkafkaconsumer.Properties",
+      "sourceType": "nl.sophiasoftware.jdbctransactionalkafkaconsumer.Properties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "jdbc-transactional-kafka-consumer.schema-initialization",
+      "type": "nl.sophiasoftware.jdbctransactionalkafkaconsumer.Properties$SchemaInitialization",
+      "description": "Whether to automatically create the kafka_consumer_offsets table on startup.",
+      "sourceType": "nl.sophiasoftware.jdbctransactionalkafkaconsumer.Properties",
+      "defaultValue": "none"
+    }
+  ],
+  "hints": [
+    {
+      "name": "jdbc-transactional-kafka-consumer.schema-initialization",
+      "values": [
+        {
+          "value": "none",
+          "description": "Do not create the table. You are responsible for creating it yourself. See https://github.com/sophiasoftware/jdbc-transactional-kafka-consumer"
+        },
+        {
+          "value": "create",
+          "description": "Create the table idempotently if it does not exist on startup."
+        }
+      ]
+    }
+  ]
+}

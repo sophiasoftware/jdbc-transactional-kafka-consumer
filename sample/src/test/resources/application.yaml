@@ -1,0 +1,20 @@
+spring:
+  kafka:
+    consumer:
+      group-id: sample-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+jdbc-transactional-kafka-consumer:
+  schema-initialization: create
+
+logging:
+  level:
+    org.springframework.jdbc.core: TRACE
+    org.springframework.transaction.support: TRACE
+    nl.sophiasoftware: DEBUG
+    org.apache.kafka: WARN
