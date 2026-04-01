@@ -5,8 +5,10 @@ A Spring Boot starter that stores Kafka consumer offsets in a JDBC database **wi
 ## Installation
 
 ```kotlin
-implementation("nl.sophiasoftware:jdbc-transactional-kafka-consumer-spring-boot-starter:0.1.0")
+implementation("nl.sophiasoftware:jdbc-transactional-kafka-consumer-spring-boot-starter:<version>")
 ```
+
+See [Maven Central](https://central.sonatype.com/artifact/nl.sophiasoftware/jdbc-transactional-kafka-consumer-spring-boot-starter) for the latest available version.
 
 ## Usage
 
