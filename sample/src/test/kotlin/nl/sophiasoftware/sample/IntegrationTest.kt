@@ -60,14 +60,14 @@ class IntegrationTest {
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
             val offsets = queryOffsets(topic = "sample-single-topic")
             assertThat(offsets).isNotEmpty()
-            assertThat(offsets.last()["committed_offset"] as Long).isGreaterThan(0L)
+            assertThat(offsets.last()["offset_id"] as Long).isGreaterThan(0L)
         }
     }
 
     @Test
     fun `offsets are not committed when processing fails`(output: CapturedOutput) {
         jdbcTemplate.update(
-            "INSERT INTO kafka_consumer_offsets (group_id, topic, partition_id, committed_offset) VALUES (?, ?, ?, ?) ON CONFLICT (group_id, topic, partition_id) DO UPDATE SET committed_offset = EXCLUDED.committed_offset",
+            "INSERT INTO kafka_consumer_offsets (consumer_group, topic, partition_id, offset_id) VALUES (?, ?, ?, ?) ON CONFLICT (consumer_group, topic, partition_id) DO UPDATE SET offset_id = EXCLUDED.offset_id",
             "sample-group", "sample-single-topic", 0, 41L,
         )
 
@@ -77,7 +77,7 @@ class IntegrationTest {
             assertThat(output.toString()).contains("Simulated failure for: throw")
         }
 
-        assertThat(queryOffsets(topic = "sample-single-topic").first()["committed_offset"] as Long).isEqualTo(41L)
+        assertThat(queryOffsets(topic = "sample-single-topic").first()["offset_id"] as Long).isEqualTo(41L)
     }
 
     @Test
@@ -88,11 +88,11 @@ class IntegrationTest {
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
             val offsets = queryOffsets(topic = "sample-batch-topic")
             assertThat(offsets).isNotEmpty()
-            assertThat(offsets.first()["committed_offset"] as Long).isEqualTo(2L)
+            assertThat(offsets.first()["offset_id"] as Long).isEqualTo(2L)
         }
 
         jdbcTemplate.update(
-            "UPDATE kafka_consumer_offsets SET committed_offset = 1 WHERE topic = ?",
+            "UPDATE kafka_consumer_offsets SET offset_id = 1 WHERE topic = ?",
             "sample-batch-topic",
         )
 
@@ -105,7 +105,7 @@ class IntegrationTest {
         }
 
         assertThat(output.toString().lines().count { "Batch: key-0 -> msg-0" in it }).isEqualTo(1)
-        assertThat(queryOffsets(topic = "sample-batch-topic").first()["committed_offset"] as Long).isEqualTo(2L)
+        assertThat(queryOffsets(topic = "sample-batch-topic").first()["offset_id"] as Long).isEqualTo(2L)
     }
 
     private fun queryOffsets(topic: String) = jdbcTemplate.queryForList(
