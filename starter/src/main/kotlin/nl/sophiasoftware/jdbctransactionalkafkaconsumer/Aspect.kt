@@ -48,7 +48,7 @@ class Aspect(
                 return emptyMap()
             }
             return batchRecords.partitions().associateWith { topicPartition ->
-                batchRecords.records(topicPartition).last().offset() + 1
+                batchRecords.records(topicPartition).maxBy { it.offset() }.offset() + 1
             }
         }
 
