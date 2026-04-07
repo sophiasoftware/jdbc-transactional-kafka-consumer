@@ -23,7 +23,7 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("io.mockk:mockk:1.14.0")
+    testImplementation("io.mockk:mockk:1.14.9")
     testImplementation("com.willowtreeapps.assertk:assertk-jvm:0.28.1")
     testRuntimeOnly("org.postgresql:postgresql")
 }
