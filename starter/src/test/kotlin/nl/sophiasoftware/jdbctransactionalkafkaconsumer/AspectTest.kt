@@ -16,16 +16,16 @@ import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionTemplate
 
 class AspectTest {
-
     private val defaultGroupId = "orders-consumer-group"
     private val defaultTopic = "orders"
     private val defaultPartition = 3
     private val defaultOffset = 11L
     private val defaultRecord = ConsumerRecord(defaultTopic, defaultPartition, defaultOffset, "key", "value")
-    private val defaultMethod = AspectTestListener::class.java.getDeclaredMethod(
-        "handle",
-        ConsumerRecord::class.java,
-    )
+    private val defaultMethod =
+        AspectTestListener::class.java.getDeclaredMethod(
+            "handle",
+            ConsumerRecord::class.java,
+        )
 
     private val transactionTemplate = mockk<TransactionTemplate>()
     private val repository = mockk<OffsetsRepository>(relaxed = true)
@@ -44,11 +44,12 @@ class AspectTest {
             firstArg<TransactionCallback<Any?>>().doInTransaction(mockk(relaxed = true))
         }
 
-        aspect = Aspect(
-            transactionTemplate = transactionTemplate,
-            repository = repository,
-            containerCustomizer = containerCustomizer,
-        )
+        aspect =
+            Aspect(
+                transactionTemplate = transactionTemplate,
+                repository = repository,
+                containerCustomizer = containerCustomizer,
+            )
     }
 
     @Test
@@ -72,18 +73,21 @@ class AspectTest {
     fun `wraps batch processing in transaction and saves last offset plus one per partition`() {
         val tp1 = TopicPartition(defaultTopic, defaultPartition)
         val tp2 = TopicPartition(defaultTopic, 7)
-        val batchRecords = ConsumerRecords(
-            mapOf(
-                tp1 to listOf(
-                    ConsumerRecord(defaultTopic, defaultPartition, 5L, "k1", "v1"),
-                    ConsumerRecord(defaultTopic, defaultPartition, 11L, "k2", "v2"),
+        val batchRecords =
+            ConsumerRecords(
+                mapOf(
+                    tp1 to
+                        listOf(
+                            ConsumerRecord(defaultTopic, defaultPartition, 5L, "k1", "v1"),
+                            ConsumerRecord(defaultTopic, defaultPartition, 11L, "k2", "v2"),
+                        ),
+                    tp2 to
+                        listOf(
+                            ConsumerRecord(defaultTopic, 7, 13L, "k3", "v3"),
+                        ),
                 ),
-                tp2 to listOf(
-                    ConsumerRecord(defaultTopic, 7, 13L, "k3", "v3"),
-                ),
-            ),
-            emptyMap(),
-        )
+                emptyMap(),
+            )
         every { joinPoint.args } returns arrayOf(batchRecords)
 
         aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint)

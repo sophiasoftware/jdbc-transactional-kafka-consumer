@@ -11,7 +11,6 @@ class SchemaInitializer(
     private val properties: Properties,
     private val jdbcTemplate: JdbcTemplate,
 ) : InitializingBean {
-
     override fun afterPropertiesSet() {
         if (tableExists()) {
             logger.info { "Table 'kafka_consumer_offsets' already exists, skipping schema initialization" }
@@ -30,15 +29,17 @@ class SchemaInitializer(
         jdbcTemplate.execute(CREATE_TABLE_SQL)
     }
 
-    private fun tableExists(): Boolean = try {
-        jdbcTemplate.execute("SELECT 1 FROM kafka_consumer_offsets WHERE 1=0")
-        true
-    } catch (_: BadSqlGrammarException) {
-        false
-    }
+    private fun tableExists(): Boolean =
+        try {
+            jdbcTemplate.execute("SELECT 1 FROM kafka_consumer_offsets WHERE 1=0")
+            true
+        } catch (_: BadSqlGrammarException) {
+            false
+        }
 
     companion object {
-        private val CREATE_TABLE_SQL = """
+        private val CREATE_TABLE_SQL =
+            """
             CREATE TABLE IF NOT EXISTS kafka_consumer_offsets (
                 consumer_group VARCHAR(512) NOT NULL,
                 topic          VARCHAR(512) NOT NULL,
@@ -46,6 +47,6 @@ class SchemaInitializer(
                 offset_id      BIGINT       NOT NULL,
                 PRIMARY KEY (consumer_group, topic, partition_id)
             )
-        """.trimIndent()
+            """.trimIndent()
     }
 }

@@ -11,7 +11,6 @@ class StoredOffsetRebalanceListener(
     private val repository: OffsetsRepository,
     private val groupId: String,
 ) : ConsumerAwareRebalanceListener {
-
     override fun onPartitionsAssigned(
         consumer: Consumer<*, *>,
         partitions: MutableCollection<TopicPartition>,
@@ -20,13 +19,16 @@ class StoredOffsetRebalanceListener(
             return
         }
 
-        val storedOffsets = repository.findOffsets(
-            groupId = groupId,
-            topicPartitions = partitions,
-        )
+        val storedOffsets =
+            repository.findOffsets(
+                groupId = groupId,
+                topicPartitions = partitions,
+            )
 
         if (storedOffsets.isEmpty()) {
-            logger.warn { "No stored offsets found for group '$groupId' on partitions $partitions — falling back to auto.offset.reset" }
+            logger.warn {
+                "No stored offsets found for group '$groupId' on partitions $partitions — falling back to auto.offset.reset"
+            }
             return
         }
 
