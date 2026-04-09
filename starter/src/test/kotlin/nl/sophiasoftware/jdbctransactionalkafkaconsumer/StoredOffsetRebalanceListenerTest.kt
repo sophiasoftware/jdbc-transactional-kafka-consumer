@@ -1,7 +1,5 @@
 package nl.sophiasoftware.jdbctransactionalkafkaconsumer
 
-import assertk.assertFailure
-import assertk.assertions.isInstanceOf
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -11,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class StoredOffsetRebalanceListenerTest {
-
     private val defaultGroupId = "invoices-consumer-group"
     private val defaultTopicPartition = TopicPartition("invoices", 3)
     private val defaultStoredOffset = 41L
@@ -41,10 +38,11 @@ class StoredOffsetRebalanceListenerTest {
         val anotherPartition = TopicPartition("invoices", 7)
         every {
             repository.findOffsets(groupId = defaultGroupId, topicPartitions = any())
-        } returns mapOf(
-            defaultTopicPartition to defaultStoredOffset,
-            anotherPartition to 97L,
-        )
+        } returns
+            mapOf(
+                defaultTopicPartition to defaultStoredOffset,
+                anotherPartition to 97L,
+            )
 
         listener.onPartitionsAssigned(
             consumer = consumer,

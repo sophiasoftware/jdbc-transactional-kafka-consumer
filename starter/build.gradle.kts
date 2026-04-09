@@ -36,7 +36,9 @@ mavenPublishing {
 
     pom {
         name.set("JDBC Transactional Kafka Consumer Spring Boot Starter")
-        description.set("Spring Boot Starter that stores Kafka consumer offsets in a JDBC database within the same transaction as your business logic.")
+        description.set(
+            "Spring Boot Starter that stores Kafka consumer offsets in a JDBC database within the same transaction as your business logic.",
+        )
         url.set("https://github.com/sophiasoftware/jdbc-transactional-kafka-consumer")
 
         licenses {

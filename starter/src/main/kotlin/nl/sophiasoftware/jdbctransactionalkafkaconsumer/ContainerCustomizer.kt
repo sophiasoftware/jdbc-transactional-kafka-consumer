@@ -20,7 +20,6 @@ class ContainerCustomizer(
     private val endpointRegistry: KafkaListenerEndpointRegistry,
     private val repository: OffsetsRepository,
 ) {
-
     private val groupIdsByMethod = mutableMapOf<Method, String>()
 
     @EventListener(ContextRefreshedEvent::class)
@@ -40,59 +39,64 @@ class ContainerCustomizer(
         groupIdsByMethod[method]
             ?: throw IllegalStateException(
                 "No group ID resolved for ${method.declaringClass.simpleName}#${method.name}. " +
-                    "Ensure it is annotated with both @${TransactionalKafkaOffsets::class.simpleName} and @${KafkaListener::class.simpleName}."
+                    "Ensure it is annotated with both @${TransactionalKafkaOffsets::class.simpleName} and @${KafkaListener::class.simpleName}.",
             )
 
     private fun configureForMethod(method: Method) {
+        val location =
+            "@${TransactionalKafkaOffsets::class.simpleName} on " +
+                "${method.declaringClass.simpleName}#${method.name}"
         val kafkaListener = method.getAnnotation(KafkaListener::class.java)
         if (kafkaListener == null) {
             throw IllegalStateException(
-                "@${TransactionalKafkaOffsets::class.simpleName} on ${method.declaringClass.simpleName}#${method.name} " +
-                    "requires @${KafkaListener::class.simpleName} to be present on the same method."
+                "$location requires @${KafkaListener::class.simpleName} to be present on the same method.",
             )
         }
 
-        val hasConsumerRecordParam = method.parameterTypes.any {
-            ConsumerRecords::class.java.isAssignableFrom(it) || ConsumerRecord::class.java.isAssignableFrom(it)
-        }
+        val hasConsumerRecordParam =
+            method.parameterTypes.any {
+                ConsumerRecords::class.java.isAssignableFrom(it) || ConsumerRecord::class.java.isAssignableFrom(it)
+            }
         if (!hasConsumerRecordParam) {
             throw IllegalStateException(
-                "@${TransactionalKafkaOffsets::class.simpleName} on ${method.declaringClass.simpleName}#${method.name} " +
-                    "requires a ${ConsumerRecords::class.simpleName}<*, *> or ${ConsumerRecord::class.simpleName}<*, *> parameter."
+                "$location requires a ${ConsumerRecords::class.simpleName}<*, *> or " +
+                    "${ConsumerRecord::class.simpleName}<*, *> parameter.",
             )
         }
 
-        val containerId = kafkaListener.id.ifBlank {
-            throw IllegalStateException(
-                "@${TransactionalKafkaOffsets::class.simpleName} on ${method.declaringClass.simpleName}#${method.name} " +
-                    "requires @${KafkaListener::class.simpleName} to have an explicit 'id'."
-            )
-        }
+        val containerId =
+            kafkaListener.id.ifBlank {
+                throw IllegalStateException(
+                    "$location requires @${KafkaListener::class.simpleName} to have an explicit 'id'.",
+                )
+            }
 
-        val container = endpointRegistry.getListenerContainer(containerId)
-            ?: throw IllegalStateException(
-                "No ${AbstractMessageListenerContainer::class.simpleName} found with id '$containerId' " +
-                    "for ${method.declaringClass.simpleName}#${method.name}."
-            )
+        val container =
+            endpointRegistry.getListenerContainer(containerId)
+                ?: throw IllegalStateException(
+                    "No ${AbstractMessageListenerContainer::class.simpleName} found with id '$containerId' " +
+                        "for ${method.declaringClass.simpleName}#${method.name}.",
+                )
 
         if (container !is AbstractMessageListenerContainer<*, *>) {
             throw IllegalStateException(
-                "Container '$containerId' is not an ${AbstractMessageListenerContainer::class.simpleName}."
+                "Container '$containerId' is not an ${AbstractMessageListenerContainer::class.simpleName}.",
             )
         }
 
-        val groupId = container.groupId
-            ?: throw IllegalStateException(
-                "Container '$containerId' has no group ID configured. " +
-                    "Set groupId on @${KafkaListener::class.simpleName} or configure spring.kafka.consumer.group-id."
-            )
+        val groupId =
+            container.groupId
+                ?: throw IllegalStateException(
+                    "Container '$containerId' has no group ID configured. " +
+                        "Set groupId on @${KafkaListener::class.simpleName} or configure spring.kafka.consumer.group-id.",
+                )
 
         container.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL
         container.containerProperties.setConsumerRebalanceListener(
             StoredOffsetRebalanceListener(
                 repository = repository,
                 groupId = groupId,
-            )
+            ),
         )
 
         groupIdsByMethod[method] = groupId
