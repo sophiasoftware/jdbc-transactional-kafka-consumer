@@ -8,7 +8,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.context.ApplicationContext
@@ -18,13 +17,13 @@ import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.listener.MessageListenerContainer
 
 class ContainerCustomizerTest {
-
     private val defaultGroupId = "payments-consumer-group"
     private val defaultContainerId = "valid-container-id"
-    private val defaultMethod = ValidTestListener::class.java.getDeclaredMethod(
-        "handle",
-        ConsumerRecord::class.java,
-    )
+    private val defaultMethod =
+        ValidTestListener::class.java.getDeclaredMethod(
+            "handle",
+            ConsumerRecord::class.java,
+        )
 
     private val applicationContext = mockk<ApplicationContext>()
     private val endpointRegistry = mockk<KafkaListenerEndpointRegistry>()
@@ -40,11 +39,12 @@ class ContainerCustomizerTest {
         every { endpointRegistry.getListenerContainer(defaultContainerId) } returns defaultContainer
         every { defaultContainer.groupId } returns defaultGroupId
 
-        customizer = ContainerCustomizer(
-            applicationContext = applicationContext,
-            endpointRegistry = endpointRegistry,
-            repository = repository,
-        )
+        customizer =
+            ContainerCustomizer(
+                applicationContext = applicationContext,
+                endpointRegistry = endpointRegistry,
+                repository = repository,
+            )
     }
 
     @Test

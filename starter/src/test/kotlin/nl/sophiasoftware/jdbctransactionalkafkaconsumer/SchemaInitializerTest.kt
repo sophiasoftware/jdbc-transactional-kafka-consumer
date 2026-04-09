@@ -1,7 +1,6 @@
 package nl.sophiasoftware.jdbctransactionalkafkaconsumer
 
 import assertk.assertFailure
-import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.hasClass
 import io.mockk.every
@@ -14,7 +13,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 import java.sql.SQLException
 
 class SchemaInitializerTest {
-
     private val properties = mockk<Properties>()
     private val jdbcTemplate = mockk<JdbcTemplate>(relaxed = true)
     private lateinit var schemaInitializer: SchemaInitializer
@@ -22,7 +20,8 @@ class SchemaInitializerTest {
     @BeforeEach
     fun setup() {
         every { properties.schemaInitialization } returns Properties.SchemaInitialization.CREATE
-        every { jdbcTemplate.execute(match { it.startsWith("SELECT") }) } throws BadSqlGrammarException("", "", SQLException())
+        every { jdbcTemplate.execute(match { it.startsWith("SELECT") }) } throws
+            BadSqlGrammarException("", "", SQLException())
         schemaInitializer = SchemaInitializer(properties = properties, jdbcTemplate = jdbcTemplate)
     }
 

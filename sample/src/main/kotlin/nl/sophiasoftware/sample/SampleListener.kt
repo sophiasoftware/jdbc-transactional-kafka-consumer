@@ -1,7 +1,7 @@
 package nl.sophiasoftware.sample
 
-import nl.sophiasoftware.jdbctransactionalkafkaconsumer.TransactionalKafkaOffsets
 import io.github.oshai.kotlinlogging.KotlinLogging
+import nl.sophiasoftware.jdbctransactionalkafkaconsumer.TransactionalKafkaOffsets
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.springframework.kafka.annotation.KafkaListener
@@ -11,7 +11,6 @@ private val logger = KotlinLogging.logger {}
 
 @Component
 class SampleListener {
-
     @TransactionalKafkaOffsets
     @KafkaListener(id = "batch-listener", topics = ["sample-batch-topic"], batch = "true")
     fun handleBatch(records: ConsumerRecords<String, String>) {

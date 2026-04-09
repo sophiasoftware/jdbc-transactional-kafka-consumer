@@ -18,7 +18,6 @@ class Aspect(
     private val repository: OffsetsRepository,
     private val containerCustomizer: ContainerCustomizer,
 ) {
-
     @Around("@annotation(nl.sophiasoftware.jdbctransactionalkafkaconsumer.TransactionalKafkaOffsets)")
     fun aroundTransactionalKafkaListener(joinPoint: ProceedingJoinPoint): Any? {
         val nextOffsets = extractNextOffsets(joinPoint = joinPoint)
@@ -60,7 +59,7 @@ class Aspect(
         }
 
         throw IllegalStateException(
-            "No ConsumerRecords or ConsumerRecord argument found in ${joinPoint.signature}"
+            "No ConsumerRecords or ConsumerRecord argument found in ${joinPoint.signature}",
         )
     }
 }
