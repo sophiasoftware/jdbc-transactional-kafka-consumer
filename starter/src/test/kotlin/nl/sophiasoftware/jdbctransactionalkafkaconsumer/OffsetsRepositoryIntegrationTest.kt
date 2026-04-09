@@ -29,18 +29,18 @@ import javax.sql.DataSource
 @ContextConfiguration(classes = [OffsetsRepositoryIntegrationTest.Config::class])
 @Transactional
 class OffsetsRepositoryIntegrationTest {
-
     @Configuration
     @EnableTransactionManagement
     class Config {
         private val postgres = PostgreSQLContainer("postgres:17").also { it.start() }
 
         @Bean
-        fun dataSource(): DataSource = DriverManagerDataSource(
-            postgres.jdbcUrl,
-            postgres.username,
-            postgres.password,
-        )
+        fun dataSource(): DataSource =
+            DriverManagerDataSource(
+                postgres.jdbcUrl,
+                postgres.username,
+                postgres.password,
+            )
 
         @Bean
         fun jdbcTemplate(dataSource: DataSource) = JdbcTemplate(dataSource)
@@ -49,10 +49,11 @@ class OffsetsRepositoryIntegrationTest {
         fun transactionManager(dataSource: DataSource) = DataSourceTransactionManager(dataSource)
 
         @Bean
-        fun schemaInitializer(jdbcTemplate: JdbcTemplate) = SchemaInitializer(
-            properties = Properties().apply { schemaInitialization = Properties.SchemaInitialization.CREATE },
-            jdbcTemplate = jdbcTemplate,
-        )
+        fun schemaInitializer(jdbcTemplate: JdbcTemplate) =
+            SchemaInitializer(
+                properties = Properties().apply { schemaInitialization = Properties.SchemaInitialization.CREATE },
+                jdbcTemplate = jdbcTemplate,
+            )
 
         @Bean
         fun offsetsRepository(jdbcTemplate: JdbcTemplate) = OffsetsRepository(jdbcTemplate = jdbcTemplate)
@@ -74,7 +75,10 @@ class OffsetsRepositoryIntegrationTest {
     fun setup() {
         jdbcTemplate.update(
             "INSERT INTO kafka_consumer_offsets (consumer_group, topic, partition_id, offset_id) VALUES (?, ?, ?, ?)",
-            defaultGroupId, defaultTopic, defaultPartition, defaultOffset,
+            defaultGroupId,
+            defaultTopic,
+            defaultPartition,
+            defaultOffset,
         )
     }
 
@@ -85,10 +89,11 @@ class OffsetsRepositoryIntegrationTest {
 
     @Test
     fun `findOffsets returns stored offset for matching group and partition`() {
-        val result = repository.findOffsets(
-            groupId = defaultGroupId,
-            topicPartitions = listOf(defaultTopicPartition),
-        )
+        val result =
+            repository.findOffsets(
+                groupId = defaultGroupId,
+                topicPartitions = listOf(defaultTopicPartition),
+            )
 
         assertThat(result).isEqualTo(mapOf(defaultTopicPartition to defaultOffset))
     }
@@ -97,20 +102,22 @@ class OffsetsRepositoryIntegrationTest {
     fun `findOffsets returns empty for partition with no stored offset`() {
         val unknownPartition = TopicPartition(defaultTopic, 7)
 
-        val result = repository.findOffsets(
-            groupId = defaultGroupId,
-            topicPartitions = listOf(unknownPartition),
-        )
+        val result =
+            repository.findOffsets(
+                groupId = defaultGroupId,
+                topicPartitions = listOf(unknownPartition),
+            )
 
         assertThat(result).isEmpty()
     }
 
     @Test
     fun `findOffsets does not return offsets for different group`() {
-        val result = repository.findOffsets(
-            groupId = "other-consumer-group",
-            topicPartitions = listOf(defaultTopicPartition),
-        )
+        val result =
+            repository.findOffsets(
+                groupId = "other-consumer-group",
+                topicPartitions = listOf(defaultTopicPartition),
+            )
 
         assertThat(result).isEmpty()
     }
@@ -120,10 +127,11 @@ class OffsetsRepositoryIntegrationTest {
         val anotherPartition = TopicPartition(defaultTopic, 7)
         repository.saveAll(groupId = defaultGroupId, offsets = mapOf(anotherPartition to 97L))
 
-        val result = repository.findOffsets(
-            groupId = defaultGroupId,
-            topicPartitions = listOf(defaultTopicPartition),
-        )
+        val result =
+            repository.findOffsets(
+                groupId = defaultGroupId,
+                topicPartitions = listOf(defaultTopicPartition),
+            )
 
         assertThat(result).isEqualTo(mapOf(defaultTopicPartition to defaultOffset))
     }
@@ -136,10 +144,11 @@ class OffsetsRepositoryIntegrationTest {
             offsets = mapOf(defaultTopicPartition to updatedOffset),
         )
 
-        val result = repository.findOffsets(
-            groupId = defaultGroupId,
-            topicPartitions = listOf(defaultTopicPartition),
-        )
+        val result =
+            repository.findOffsets(
+                groupId = defaultGroupId,
+                topicPartitions = listOf(defaultTopicPartition),
+            )
 
         assertThat(result).isEqualTo(mapOf(defaultTopicPartition to updatedOffset))
     }
@@ -149,10 +158,11 @@ class OffsetsRepositoryIntegrationTest {
         val anotherPartition = TopicPartition(defaultTopic, 7)
         repository.saveAll(groupId = defaultGroupId, offsets = mapOf(anotherPartition to 97L))
 
-        val result = repository.findOffsets(
-            groupId = defaultGroupId,
-            topicPartitions = listOf(defaultTopicPartition, anotherPartition),
-        )
+        val result =
+            repository.findOffsets(
+                groupId = defaultGroupId,
+                topicPartitions = listOf(defaultTopicPartition, anotherPartition),
+            )
 
         assertThat(result).isEqualTo(mapOf(defaultTopicPartition to defaultOffset, anotherPartition to 97L))
     }

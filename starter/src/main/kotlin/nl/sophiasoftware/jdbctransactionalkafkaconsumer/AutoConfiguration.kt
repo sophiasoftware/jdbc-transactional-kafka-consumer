@@ -14,15 +14,18 @@ import org.springframework.transaction.support.TransactionTemplate
 @AutoConfiguration
 @EnableConfigurationProperties(Properties::class)
 @EnableAspectJAutoProxy
-@ConditionalOnClass(KafkaTemplate::class, JdbcTemplate::class, KafkaListenerEndpointRegistry::class, TransactionTemplate::class)
+@ConditionalOnClass(
+    KafkaTemplate::class,
+    JdbcTemplate::class,
+    KafkaListenerEndpointRegistry::class,
+    TransactionTemplate::class,
+)
 class AutoConfiguration {
-
     @Bean
-    fun transactionalKafkaOffsetsRepository(
-        jdbcTemplate: JdbcTemplate,
-    ) = OffsetsRepository(
-        jdbcTemplate = jdbcTemplate,
-    )
+    fun transactionalKafkaOffsetsRepository(jdbcTemplate: JdbcTemplate) =
+        OffsetsRepository(
+            jdbcTemplate = jdbcTemplate,
+        )
 
     @Bean
     fun transactionalKafkaSchemaInitializer(

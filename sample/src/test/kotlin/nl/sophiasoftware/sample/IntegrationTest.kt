@@ -33,7 +33,6 @@ import java.time.Duration
 )
 @ExtendWith(OutputCaptureExtension::class)
 class IntegrationTest {
-
     @TestConfiguration
     class Config {
         @Bean
@@ -68,7 +67,10 @@ class IntegrationTest {
     fun `offsets are not committed when processing fails`(output: CapturedOutput) {
         jdbcTemplate.update(
             "INSERT INTO kafka_consumer_offsets (consumer_group, topic, partition_id, offset_id) VALUES (?, ?, ?, ?) ON CONFLICT (consumer_group, topic, partition_id) DO UPDATE SET offset_id = EXCLUDED.offset_id",
-            "sample-group", "sample-single-topic", 0, 41L,
+            "sample-group",
+            "sample-single-topic",
+            0,
+            41L,
         )
 
         kafkaTemplate.send("sample-single-topic", "key-1", "throw").get()
@@ -108,8 +110,9 @@ class IntegrationTest {
         assertThat(queryOffsets(topic = "sample-batch-topic").first()["offset_id"] as Long).isEqualTo(2L)
     }
 
-    private fun queryOffsets(topic: String) = jdbcTemplate.queryForList(
-        "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
-        topic,
-    )
+    private fun queryOffsets(topic: String) =
+        jdbcTemplate.queryForList(
+            "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
+            topic,
+        )
 }
