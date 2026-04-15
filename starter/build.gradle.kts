@@ -32,7 +32,7 @@ mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
 
-    coordinates(artifactId = "jdbc-transactional-kafka-consumer-spring-boot-starter")
+    coordinates(groupId = "nl.sophiasoftware", artifactId = "jdbc-transactional-kafka-consumer-spring-boot-starter")
 
     pom {
         name.set("JDBC Transactional Kafka Consumer Spring Boot Starter")
