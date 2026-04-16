@@ -4,6 +4,26 @@ A Spring Boot starter that stores Kafka consumer offsets in a JDBC database **wi
 
 [![Maven](https://badges.mvnrepository.com/badge/nl.sophiasoftware/jdbc-transactional-kafka-consumer-spring-boot-starter/badge.svg?label=Maven)](https://mvnrepository.com/artifact/nl.sophiasoftware/jdbc-transactional-kafka-consumer-spring-boot-starter)
 
+## What This Spring Boot Starter Solves
+
+When you consume a Kafka message and process it with a database transaction, you have two separate systems that can each fail independently. Consider this sequence:
+
+1. Your business logic runs and the database transaction **commits** ✅
+2. Kafka offset commit **fails** ❌
+
+Kafka now thinks the message was never processed. On restart, your listener receives the same, your business logic runs a second time, potentially creating duplicate records, double charges, or inconsistent state.
+
+The reverse is potentially more dangerous:
+
+1. Kafka offset commits **successfully** ✅
+2. Your database transaction **rolls back** ❌
+
+Kafka thinks the message is done, but your business logic never completed. The message is silently lost.
+
+This is the **dual-write problem**: you cannot atomically commit to both Kafka and a database without a distributed transaction.
+
+Instead of letting Kafka manage offsets, this starter stores them in **your own database** — inside the same transaction as your business logic. Either both commit or both roll back. No duplicates. No silent data loss. Exactly-once processing, guaranteed by your database.
+
 ## Installation
 
 ```kotlin
