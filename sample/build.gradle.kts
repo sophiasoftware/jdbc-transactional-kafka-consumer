@@ -9,6 +9,7 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.awaitility:awaitility-kotlin")
     testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-kafka")
     testImplementation("com.willowtreeapps.assertk:assertk-jvm:0.28.1")
 }
 
