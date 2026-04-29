@@ -12,6 +12,7 @@ import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.reflect.MethodSignature
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.kafka.support.Acknowledgment
 import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionTemplate
 
@@ -114,8 +115,31 @@ class AspectTest {
         assertFailure { aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint) }
             .isInstanceOf(IllegalStateException::class)
     }
+
+    @Test
+    fun `acknowledges Kafka offset after transaction when Acknowledgment parameter is present`() {
+        val acknowledgment = mockk<Acknowledgment>(relaxed = true)
+        val methodWithAck =
+            AspectTestListener::class.java.getDeclaredMethod(
+                "handleWithAcknowledgment",
+                ConsumerRecord::class.java,
+                Acknowledgment::class.java,
+            )
+        every { joinPoint.args } returns arrayOf(defaultRecord, acknowledgment)
+        every { methodSignature.method } returns methodWithAck
+        every { containerCustomizer.resolveGroupId(method = methodWithAck) } returns defaultGroupId
+
+        aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint)
+
+        verify { acknowledgment.acknowledge() }
+    }
 }
 
 private class AspectTestListener {
     fun handle(record: ConsumerRecord<String, String>) {}
+
+    fun handleWithAcknowledgment(
+        record: ConsumerRecord<String, String>,
+        acknowledgment: Acknowledgment,
+    ) {}
 }
