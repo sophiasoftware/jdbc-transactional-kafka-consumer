@@ -40,8 +40,7 @@ class Aspect(
                 logger.debug { "Saved offsets for group $groupId: $nextOffsets" }
 
                 result
-            }
-            .also { acknowledgment?.acknowledge() }
+            }.also { acknowledgment?.acknowledge() }
     }
 
     private fun extractNextOffsets(joinPoint: ProceedingJoinPoint): Map<TopicPartition, Long> {
