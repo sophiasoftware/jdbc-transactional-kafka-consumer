@@ -29,7 +29,7 @@ import java.time.Duration
 @DirtiesContext
 @EmbeddedKafka(
     partitions = 1,
-    topics = ["sample-single-topic", "sample-batch-topic"],
+    topics = ["sample-single-topic", "sample-batch-topic", "sample-commit-failing-topic"],
 )
 @ExtendWith(OutputCaptureExtension::class)
 class IntegrationTest {
@@ -80,6 +80,25 @@ class IntegrationTest {
         }
 
         assertThat(queryOffsets(topic = "sample-single-topic").first()["offset_id"] as Long).isEqualTo(41L)
+    }
+
+    @Test
+    fun `offsets are not committed when commit-phase fails after offset save`(output: CapturedOutput) {
+        jdbcTemplate.update(
+            "INSERT INTO kafka_consumer_offsets (consumer_group, topic, partition_id, offset_id) VALUES (?, ?, ?, ?) ON CONFLICT (consumer_group, topic, partition_id) DO UPDATE SET offset_id = EXCLUDED.offset_id",
+            "sample-group",
+            "sample-commit-failing-topic",
+            0,
+            41L,
+        )
+
+        kafkaTemplate.send("sample-commit-failing-topic", "key-1", "value-1").get()
+
+        await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            assertThat(output.toString()).contains("Simulated failure after offset save for: value-1")
+        }
+
+        assertThat(queryOffsets(topic = "sample-commit-failing-topic").first()["offset_id"] as Long).isEqualTo(41L)
     }
 
     @Test

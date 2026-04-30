@@ -5,6 +5,7 @@ import assertk.assertions.isInstanceOf
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.apache.kafka.common.TopicPartition
@@ -12,6 +13,7 @@ import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.reflect.MethodSignature
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.transaction.TransactionSystemException
 import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionTemplate
 
@@ -105,6 +107,23 @@ class AspectTest {
 
         verify(exactly = 0) { transactionTemplate.execute(any()) }
         verify { joinPoint.proceed() }
+    }
+
+    @Test
+    fun `propagates exception when transaction commit fails after offset save`() {
+        every { transactionTemplate.execute(any<TransactionCallback<Any?>>()) } answers {
+            firstArg<TransactionCallback<Any?>>().doInTransaction(mockk(relaxed = true))
+            throw TransactionSystemException("commit failed")
+        }
+
+        assertFailure { aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint) }
+            .isInstanceOf(TransactionSystemException::class)
+
+        val expectedOffsets = mapOf(TopicPartition(defaultTopic, defaultPartition) to defaultOffset + 1)
+        verifyOrder {
+            joinPoint.proceed()
+            repository.saveAll(groupId = defaultGroupId, offsets = expectedOffsets)
+        }
     }
 
     @Test
