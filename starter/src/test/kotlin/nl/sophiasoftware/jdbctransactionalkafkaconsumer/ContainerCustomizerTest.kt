@@ -2,11 +2,15 @@ package nl.sophiasoftware.jdbctransactionalkafkaconsumer
 
 import assertk.assertFailure
 import assertk.assertThat
+import assertk.assertions.hasSize
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isSameInstanceAs
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -38,6 +42,7 @@ class ContainerCustomizerTest {
         every { applicationContext.getBean("validTestListener") } returns ValidTestListener()
         every { endpointRegistry.getListenerContainer(defaultContainerId) } returns defaultContainer
         every { defaultContainer.groupId } returns defaultGroupId
+        every { defaultContainer.containerProperties.consumerRebalanceListener } returns null
 
         customizer =
             ContainerCustomizer(
@@ -70,13 +75,36 @@ class ContainerCustomizerTest {
     }
 
     @Test
-    fun `onContextRefreshed sets StoredOffsetRebalanceListener on container`() {
+    fun `onContextRefreshed sets composite with only stored offset listener when no existing listener`() {
         customizer.onContextRefreshed()
 
-        verify {
-            defaultContainer.containerProperties.setConsumerRebalanceListener(any<StoredOffsetRebalanceListener>())
-        }
+        val captured = slot<CompositeRebalanceListener>()
+        verify { defaultContainer.containerProperties.setConsumerRebalanceListener(capture(captured)) }
+        val delegates = captured.captured.delegates()
+        assertThat(delegates).hasSize(1)
+        assertThat(delegates[0] as Any).isInstanceOf(StoredOffsetRebalanceListener::class)
     }
+
+    @Test
+    fun `onContextRefreshed wraps existing rebalance listener with composite, ours last`() {
+        val existingListener = mockk<ConsumerRebalanceListener>(relaxed = true)
+        every { defaultContainer.containerProperties.consumerRebalanceListener } returns existingListener
+
+        customizer.onContextRefreshed()
+
+        val captured = slot<CompositeRebalanceListener>()
+        verify { defaultContainer.containerProperties.setConsumerRebalanceListener(capture(captured)) }
+        val delegates = captured.captured.delegates()
+        assertThat(delegates).hasSize(2)
+        assertThat(delegates[0] as Any).isSameInstanceAs(existingListener)
+        assertThat(delegates[1] as Any).isInstanceOf(StoredOffsetRebalanceListener::class)
+    }
+
+    private fun CompositeRebalanceListener.delegates(): List<*> =
+        CompositeRebalanceListener::class.java
+            .getDeclaredField("delegates")
+            .apply { isAccessible = true }
+            .get(this) as List<*>
 
     @Test
     fun `onContextRefreshed throws when method has @TransactionalKafkaOffsets but no @KafkaListener`() {

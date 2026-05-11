@@ -92,12 +92,15 @@ class ContainerCustomizer(
                 )
 
         container.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL
-        container.containerProperties.setConsumerRebalanceListener(
+
+        val storedOffsetListener =
             StoredOffsetRebalanceListener(
                 repository = repository,
                 groupId = groupId,
-            ),
-        )
+            )
+        listOfNotNull(container.containerProperties.consumerRebalanceListener, storedOffsetListener)
+            .let { CompositeRebalanceListener(delegates = it) }
+            .also { container.containerProperties.setConsumerRebalanceListener(it) }
 
         groupIdsByMethod[method] = groupId
 
