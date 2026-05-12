@@ -68,9 +68,7 @@ class IntegrationTest {
         kafkaTemplate.send("sample-single-topic", "key-1", "hello").get()
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
-            val offsets = queryOffsets(topic = "sample-single-topic")
-            assertThat(offsets).isNotEmpty()
-            assertThat(offsets.last()["offset_id"] as Long).isGreaterThan(0L)
+            assertThatFirstOffsetOfTopic("sample-single-topic").isGreaterThan(0L)
             assertThat(jdbcTemplate.queryForList("SELECT * FROM processed_messages")).isNotEmpty()
         }
     }
@@ -83,7 +81,7 @@ class IntegrationTest {
             assertThat(output.toString()).contains("Simulated failure for: throw")
         }
 
-        assertThat(queryOffsets(topic = "sample-single-topic")).isEmpty()
+        assertNoOffsetsForTopic("sample-single-topic")
     }
 
     @Test
@@ -92,9 +90,7 @@ class IntegrationTest {
         kafkaTemplate.send("sample-batch-topic", "key-1", "msg-1").get()
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
-            val offsets = queryOffsets(topic = "sample-batch-topic")
-            assertThat(offsets).isNotEmpty()
-            assertThat(offsets.first()["offset_id"] as Long).isEqualTo(2L)
+            assertThatFirstOffsetOfTopic("sample-batch-topic").isEqualTo(2L)
         }
 
         jdbcTemplate.update(
@@ -111,7 +107,7 @@ class IntegrationTest {
         }
 
         assertThat(output.toString().lines().count { "Batch: key-0 -> msg-0" in it }).isEqualTo(1)
-        assertOffset(topic = "sample-batch-topic", expected = 2L)
+        assertThatFirstOffsetOfTopic("sample-batch-topic").isEqualTo(2L)
     }
 
     @Test
@@ -123,17 +119,20 @@ class IntegrationTest {
         }
 
         assertThat(jdbcTemplate.queryForList("SELECT * FROM processed_messages")).isEmpty()
-        assertThat(queryOffsets(topic = "sample-single-topic")).isEmpty()
+        assertNoOffsetsForTopic("sample-single-topic")
     }
 
-    private fun assertOffset(
-        topic: String,
-        expected: Long,
-    ) = assertThat(queryOffsets(topic = topic).first()["offset_id"] as Long).isEqualTo(expected)
+    private fun assertNoOffsetsForTopic(topic: String) =
+        jdbcTemplate
+            .queryForList(
+                "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
+                topic,
+            ).isEmpty()
 
-    private fun queryOffsets(topic: String) =
-        jdbcTemplate.queryForList(
-            "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
-            topic,
-        )
+    private fun assertThatFirstOffsetOfTopic(topic: String) =
+        jdbcTemplate
+            .queryForList(
+                "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
+                topic,
+            ).let { assertThat(it.first()["offset_id"] as Long) }
 }
