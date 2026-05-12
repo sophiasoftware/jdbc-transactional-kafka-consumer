@@ -71,6 +71,7 @@ class IntegrationTest {
             val offsets = queryOffsets(topic = "sample-single-topic")
             assertThat(offsets).isNotEmpty()
             assertThat(offsets.last()["offset_id"] as Long).isGreaterThan(0L)
+            assertThat(jdbcTemplate.queryForList("SELECT * FROM processed_messages")).isNotEmpty()
         }
     }
 
