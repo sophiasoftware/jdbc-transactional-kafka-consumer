@@ -19,7 +19,7 @@ dependencies {
     api("org.springframework.boot:spring-boot-starter-aspectj")
     api("org.springframework.boot:spring-boot-starter-jdbc")
     api("org.springframework.boot:spring-boot-starter-kafka")
-    api("io.github.oshai:kotlin-logging-jvm:8.0.02")
+    api("io.github.oshai:kotlin-logging-jvm:8.0.03")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:testcontainers-postgresql")
