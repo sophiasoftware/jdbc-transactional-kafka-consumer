@@ -54,6 +54,33 @@ fun handle(records: ConsumerRecords<String, String>) {
 }
 ```
 
+### Kafka offset commit (optional)
+
+By default, this starter uses your database as the sole source of truth for offsets and does not commit anything back to Kafka. Kafka's consumer group management and monitoring tools therefore show stale lag.
+
+If you want monitoring tools to reflect accurate consumer lag, add an `Acknowledgment` parameter to your listener. After the database transaction commits successfully, the starter acknowledges the offset back to Kafka:
+
+```kotlin
+@KafkaListener(id = "orders", topics = ["orders"], groupId = "orders")
+@TransactionalKafkaOffsets
+fun handle(record: ConsumerRecord<String, String>, acknowledgment: Acknowledgment) {
+    // your business logic here
+}
+```
+
+Because Spring Kafka only populates the `Acknowledgment` argument when the listener container's ack mode is `MANUAL` (or `MANUAL_IMMEDIATE`), you must configure that yourself — for example globally:
+
+```yaml
+spring:
+  kafka:
+    listener:
+      ack-mode: manual
+```
+
+or per-listener via a custom `containerFactory`. The starter validates this at startup and fails fast with a clear message if the ack mode is wrong.
+
+This is purely additive: the database remains the authoritative source. If the Kafka acknowledgment fails after the database has committed, the offset is still tracked correctly in your database and the message will not be reprocessed.
+
 ## Schema
 
 The starter needs a `kafka_consumer_offsets` table. You can let the starter create it automatically:

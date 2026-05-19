@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
 
 private val logger = KotlinLogging.logger {}
@@ -34,6 +35,18 @@ class SampleListener(
             record.key(),
             record.value(),
         )
+        if ("throw" in record.value()) {
+            throw IllegalArgumentException("Simulated failure for: ${record.value()}")
+        }
+    }
+
+    @TransactionalKafkaOffsets
+    @KafkaListener(id = "ack-listener", topics = ["sample-ack-topic"])
+    fun handleWithAcknowledgment(
+        record: ConsumerRecord<String, String>,
+        acknowledgment: Acknowledgment,
+    ) {
+        logger.info { "Ack: ${record.key()} -> ${record.value()}" }
         if ("throw" in record.value()) {
             throw IllegalArgumentException("Simulated failure for: ${record.value()}")
         }

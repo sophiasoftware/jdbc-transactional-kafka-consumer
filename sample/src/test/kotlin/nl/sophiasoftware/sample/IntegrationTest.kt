@@ -31,7 +31,7 @@ import java.time.Duration
 @DirtiesContext
 @EmbeddedKafka(
     partitions = 1,
-    topics = ["sample-single-topic", "sample-batch-topic"],
+    topics = ["sample-single-topic", "sample-batch-topic", "sample-ack-topic"],
 )
 @ExtendWith(OutputCaptureExtension::class)
 class IntegrationTest {

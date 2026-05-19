@@ -8,6 +8,7 @@ import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.reflect.MethodSignature
+import org.springframework.kafka.support.Acknowledgment
 import org.springframework.transaction.support.TransactionTemplate
 
 private val logger = KotlinLogging.logger {}
@@ -28,16 +29,18 @@ class Aspect(
 
         val method = (joinPoint.signature as MethodSignature).method
         val groupId = containerCustomizer.resolveGroupId(method = method)
+        val acknowledgment = joinPoint.args.filterIsInstance<Acknowledgment>().firstOrNull()
 
-        return transactionTemplate.execute {
-            val result = joinPoint.proceed()
+        return transactionTemplate
+            .execute {
+                val result = joinPoint.proceed()
 
-            repository.saveAll(groupId = groupId, offsets = nextOffsets)
+                repository.saveAll(groupId = groupId, offsets = nextOffsets)
 
-            logger.debug { "Saved offsets for group $groupId: $nextOffsets" }
+                logger.debug { "Saved offsets for group $groupId: $nextOffsets" }
 
-            result
-        }
+                result
+            }.also { acknowledgment?.acknowledge() }
     }
 
     private fun extractNextOffsets(joinPoint: ProceedingJoinPoint): Map<TopicPartition, Long> {

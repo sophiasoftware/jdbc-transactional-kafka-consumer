@@ -1,5 +1,7 @@
 spring:
   kafka:
+    listener:
+      ack-mode: manual
     consumer:
       group-id: sample-group
       auto-offset-reset: earliest

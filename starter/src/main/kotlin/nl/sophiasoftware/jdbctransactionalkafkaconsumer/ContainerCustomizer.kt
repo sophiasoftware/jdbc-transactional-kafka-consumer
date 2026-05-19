@@ -11,6 +11,7 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry
 import org.springframework.kafka.listener.AbstractMessageListenerContainer
 import org.springframework.kafka.listener.ContainerProperties
+import org.springframework.kafka.support.Acknowledgment
 import java.lang.reflect.Method
 
 private val logger = KotlinLogging.logger {}
@@ -91,6 +92,21 @@ class ContainerCustomizer(
                         "Set groupId on @${KafkaListener::class.simpleName} or configure spring.kafka.consumer.group-id.",
                 )
 
+        val hasAcknowledgmentParam = method.parameterTypes.any { Acknowledgment::class.java.isAssignableFrom(it) }
+        if (hasAcknowledgmentParam) {
+            val ackMode = container.containerProperties.ackMode
+            if (ackMode != ContainerProperties.AckMode.MANUAL &&
+                ackMode != ContainerProperties.AckMode.MANUAL_IMMEDIATE
+            ) {
+                val ackName = Acknowledgment::class.simpleName
+                throw IllegalStateException(
+                    "$location declares an $ackName parameter, but container '$containerId' has " +
+                        "ackMode=$ackMode. Configure the listener with a containerFactory whose " +
+                        "ackMode is MANUAL (or MANUAL_IMMEDIATE), e.g. by setting " +
+                        "'spring.kafka.listener.ack-mode: manual'.",
+                )
+            }
+        }
         container.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL
         container.containerProperties.setConsumerRebalanceListener(
             StoredOffsetRebalanceListener(
