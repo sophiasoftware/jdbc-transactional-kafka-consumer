@@ -2,10 +2,12 @@ package nl.sophiasoftware.sample
 
 import assertk.assertThat
 import assertk.assertions.contains
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEmpty
 import org.awaitility.kotlin.await
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -52,34 +54,34 @@ class IntegrationTest {
     @Autowired
     lateinit var endpointRegistry: KafkaListenerEndpointRegistry
 
+    @BeforeEach
+    fun setup() {
+        jdbcTemplate.execute(
+            "CREATE TABLE IF NOT EXISTS processed_messages (key VARCHAR(512), value VARCHAR(512))",
+        )
+        jdbcTemplate.execute("TRUNCATE TABLE processed_messages")
+        jdbcTemplate.execute("TRUNCATE TABLE kafka_consumer_offsets")
+    }
+
     @Test
     fun `offsets are committed when processing succeeds`(output: CapturedOutput) {
         kafkaTemplate.send("sample-single-topic", "key-1", "hello").get()
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
-            val offsets = queryOffsets(topic = "sample-single-topic")
-            assertThat(offsets).isNotEmpty()
-            assertThat(offsets.last()["offset_id"] as Long).isGreaterThan(0L)
+            assertThatFirstOffsetOfTopic("sample-single-topic").isGreaterThan(0L)
+            assertThat(jdbcTemplate.queryForList("SELECT * FROM processed_messages")).isNotEmpty()
         }
     }
 
     @Test
     fun `offsets are not committed when processing fails`(output: CapturedOutput) {
-        jdbcTemplate.update(
-            "INSERT INTO kafka_consumer_offsets (consumer_group, topic, partition_id, offset_id) VALUES (?, ?, ?, ?) ON CONFLICT (consumer_group, topic, partition_id) DO UPDATE SET offset_id = EXCLUDED.offset_id",
-            "sample-group",
-            "sample-single-topic",
-            0,
-            41L,
-        )
-
         kafkaTemplate.send("sample-single-topic", "key-1", "throw").get()
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
             assertThat(output.toString()).contains("Simulated failure for: throw")
         }
 
-        assertThat(queryOffsets(topic = "sample-single-topic").first()["offset_id"] as Long).isEqualTo(41L)
+        assertNoOffsetsForTopic("sample-single-topic")
     }
 
     @Test
@@ -88,9 +90,7 @@ class IntegrationTest {
         kafkaTemplate.send("sample-batch-topic", "key-1", "msg-1").get()
 
         await.atMost(Duration.ofSeconds(10)).untilAsserted {
-            val offsets = queryOffsets(topic = "sample-batch-topic")
-            assertThat(offsets).isNotEmpty()
-            assertThat(offsets.first()["offset_id"] as Long).isEqualTo(2L)
+            assertThatFirstOffsetOfTopic("sample-batch-topic").isEqualTo(2L)
         }
 
         jdbcTemplate.update(
@@ -107,12 +107,32 @@ class IntegrationTest {
         }
 
         assertThat(output.toString().lines().count { "Batch: key-0 -> msg-0" in it }).isEqualTo(1)
-        assertThat(queryOffsets(topic = "sample-batch-topic").first()["offset_id"] as Long).isEqualTo(2L)
+        assertThatFirstOffsetOfTopic("sample-batch-topic").isEqualTo(2L)
     }
 
-    private fun queryOffsets(topic: String) =
-        jdbcTemplate.queryForList(
-            "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
-            topic,
-        )
+    @Test
+    fun `database insert and offset are both rolled back when processing fails`(output: CapturedOutput) {
+        kafkaTemplate.send("sample-single-topic", "key-1", "throw").get()
+
+        await.atMost(Duration.ofSeconds(10)).untilAsserted {
+            assertThat(output.toString()).contains("Simulated failure for: throw")
+        }
+
+        assertThat(jdbcTemplate.queryForList("SELECT * FROM processed_messages")).isEmpty()
+        assertNoOffsetsForTopic("sample-single-topic")
+    }
+
+    private fun assertNoOffsetsForTopic(topic: String) =
+        jdbcTemplate
+            .queryForList(
+                "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
+                topic,
+            ).isEmpty()
+
+    private fun assertThatFirstOffsetOfTopic(topic: String) =
+        jdbcTemplate
+            .queryForList(
+                "SELECT * FROM kafka_consumer_offsets WHERE topic = ?",
+                topic,
+            ).let { assertThat(it.first()["offset_id"] as Long) }
 }
