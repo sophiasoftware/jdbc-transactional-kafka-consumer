@@ -14,3 +14,7 @@ spring:
 
 jdbc-transactional-kafka-consumer:
   schema-initialization: create
+
+logging:
+  pattern:
+    level: "%5p [%mdc]"
