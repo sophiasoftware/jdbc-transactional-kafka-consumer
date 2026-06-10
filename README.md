@@ -6,6 +6,8 @@ A Spring Boot starter that stores Kafka consumer offsets in a JDBC database **wi
 
 ## What This Spring Boot Starter Solves
 
+### The Dual-Write Problem
+
 When you consume a Kafka message and process it with a database transaction, you have two separate systems that can each fail independently. Consider this sequence:
 
 1. Your business logic runs and the database transaction **commits** ✅
@@ -22,7 +24,17 @@ Kafka thinks the message is done, but your business logic never completed. The m
 
 This is the **dual-write problem**: you cannot atomically commit to both Kafka and a database without a distributed transaction.
 
-Instead of letting Kafka manage offsets, this starter stores them in **your own database** — inside the same transaction as your business logic. Either both commit or both roll back. No duplicates. No silent data loss. Exactly-once processing, guaranteed by your database.
+Instead of letting Kafka manage offsets, this starter stores them in **your own database**, inside the same transaction as your business logic. Either both commit or both roll back. No duplicates. No silent data loss. Exactly-once processing, guaranteed by your database.
+
+### Atomic Backups
+
+Because consumer offsets live in the same database as your business data, a regular database backup captures both **in a single, consistent snapshot**.
+
+When you restore that backup, the offsets it contains describe exactly which Kafka messages had already been processed at the moment the backup was taken, the same moment your business data reflects. Restart your consumers and they pick up right where the backup left off: no missed messages, no reprocessed ones.
+
+Compare this to storing offsets in Kafka itself: after restoring a database backup, your business data is "in the past" while Kafka's committed offsets are still "in the present". You'd have to manually figure out and reset the consumer group's offsets to match the restored point in time; get it wrong and you either reprocess messages already reflected in your data, or skip messages your restored data is missing.
+
+With offsets stored alongside your business data, **restoring the database backup is enough**. There's no separate Kafka offset reset step.
 
 ## Installation
 
