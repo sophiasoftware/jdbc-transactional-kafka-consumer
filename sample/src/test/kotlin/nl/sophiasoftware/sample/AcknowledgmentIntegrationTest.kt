@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEmpty
 import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.common.TopicPartition
 import org.awaitility.kotlin.await
 import org.junit.jupiter.api.AfterEach
@@ -14,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
+import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.KafkaAdmin
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.listener.DefaultErrorHandler
@@ -47,6 +49,14 @@ class AcknowledgmentIntegrationTest {
 
         @Bean
         fun errorHandler() = DefaultErrorHandler(FixedBackOff(0L, 0L))
+
+        @Bean
+        fun sampleAckTopic(): NewTopic =
+            TopicBuilder
+                .name("sample-ack-topic")
+                .partitions(1)
+                .replicas(1)
+                .build()
     }
 
     @Autowired
