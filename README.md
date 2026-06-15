@@ -3,6 +3,7 @@
 A Spring Boot starter that stores Kafka consumer offsets in a JDBC database **within the same transaction as your business logic**. This guarantees exactly-once processing: if your business transaction rolls back, the offset is not committed either.
 
 [![Maven](https://badges.mvnrepository.com/badge/nl.sophiasoftware/jdbc-transactional-kafka-consumer-spring-boot-starter/badge.svg?label=Maven)](https://mvnrepository.com/artifact/nl.sophiasoftware/jdbc-transactional-kafka-consumer-spring-boot-starter)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sophiasoftware/jdbc-transactional-kafka-consumer/badge)](https://scorecard.dev/viewer/?uri=github.com/sophiasoftware/jdbc-transactional-kafka-consumer)
 
 ## What This Spring Boot Starter Solves
 
