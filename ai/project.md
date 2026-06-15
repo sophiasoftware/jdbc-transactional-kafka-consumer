@@ -64,3 +64,12 @@ Het `@Around`-aspect in `Aspect.kt`:
 - Ktlint voor formatting
 - Testcontainers (PostgreSQL 17) + embedded Kafka in tests
 - AssertK + Awaitility in tests
+
+## CI/CD & security (.github/workflows)
+
+- **`ci.yml`** — draait `./gradlew check` op pull requests
+- **`publish.yml`** — publiceert `starter` naar Maven Central bij een `v*`-tag
+- **`codeql.yml`** — CodeQL SAST-scan (java-kotlin) op push/PR naar `main` en wekelijks
+- **`scorecard.yml`** — OpenSSF Scorecard-analyse op push naar `main` en wekelijks, publiceert resultaten naar de publieke Scorecard API en als SARIF naar code scanning
+
+Alle GitHub Actions zijn gepind op commit-SHA (met versie-comment) voor de Scorecard "Pinned-Dependencies" check.
