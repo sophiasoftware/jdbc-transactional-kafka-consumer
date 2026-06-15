@@ -72,4 +72,4 @@ Het `@Around`-aspect in `Aspect.kt`:
 - **`codeql.yml`** — CodeQL SAST-scan (java-kotlin) op push/PR naar `main` en wekelijks
 - **`scorecard.yml`** — OpenSSF Scorecard-analyse op push naar `main` en wekelijks, publiceert resultaten naar de publieke Scorecard API en als SARIF naar code scanning
 
-Alle GitHub Actions zijn gepind op commit-SHA (met versie-comment) voor de Scorecard "Pinned-Dependencies" check.
+Alle GitHub Actions zijn gepind op commit-SHA (met versie-comment) voor de Scorecard "Pinned-Dependencies" check. `ci.yml` en `publish.yml` hebben top-level `permissions: contents: read` voor de "Token-Permissions" check. `SECURITY.md` (root) verwijst naar GitHub's private vulnerability reporting voor de "Security-Policy" check.
