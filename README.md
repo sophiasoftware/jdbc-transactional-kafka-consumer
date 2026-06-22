@@ -94,6 +94,14 @@ or per-listener via a custom `containerFactory`. The starter validates this at s
 
 This is purely additive: the database remains the authoritative source. If the Kafka acknowledgment fails after the database has committed, the offset is still tracked correctly in your database and the message will not be reprocessed.
 
+## Coroutines
+
+Suspend functions are not supported as listener methods. The starter detects them at runtime and throws an `UnsupportedOperationException`.
+
+This is an intentional limitation. Since this starter is built on JDBC — which is inherently blocking — there is no benefit to running listener logic in a coroutine context. A suspend listener would still need to block on every database call, making coroutines add complexity without any gain.
+
+If you want to use coroutines within your listener body, wrap them in `runBlocking` inside a regular (non-suspend) listener function.
+
 ## Schema
 
 The starter needs a `kafka_consumer_offsets` table. You can let the starter create it automatically:

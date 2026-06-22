@@ -1,6 +1,7 @@
 package nl.sophiasoftware.jdbctransactionalkafkaconsumer
 
 import assertk.assertFailure
+import assertk.assertions.hasMessage
 import assertk.assertions.isInstanceOf
 import io.mockk.every
 import io.mockk.mockk
@@ -109,6 +110,16 @@ class AspectTest {
     }
 
     @Test
+    fun `throws when listener is a suspend function`() {
+        val suspendMethod = AspectTestListener::class.java.declaredMethods.first { it.name == "handleSuspend" }
+        every { methodSignature.method } returns suspendMethod
+
+        assertFailure { aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint) }
+            .isInstanceOf(UnsupportedOperationException::class)
+            .hasMessage("@TransactionalKafkaOffsets does not support suspend functions: handleSuspend")
+    }
+
+    @Test
     fun `throws when no ConsumerRecord or ConsumerRecords argument is present`() {
         every { joinPoint.args } returns arrayOf("not-a-record")
 
@@ -142,4 +153,6 @@ private class AspectTestListener {
         record: ConsumerRecord<String, String>,
         acknowledgment: Acknowledgment,
     ) {}
+
+    suspend fun handleSuspend(record: ConsumerRecord<String, String>) {}
 }
