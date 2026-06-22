@@ -9,6 +9,7 @@ import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.reflect.MethodSignature
 import org.slf4j.MDC
+import org.springframework.core.KotlinDetector
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.transaction.support.TransactionTemplate
 
@@ -23,6 +24,13 @@ class Aspect(
     @Around("@annotation(nl.sophiasoftware.jdbctransactionalkafkaconsumer.TransactionalKafkaOffsets)")
     fun aroundTransactionalKafkaListener(joinPoint: ProceedingJoinPoint): Any? {
         val method = (joinPoint.signature as MethodSignature).method
+
+        if (KotlinDetector.isSuspendingFunction(method)) {
+            throw UnsupportedOperationException(
+                "@TransactionalKafkaOffsets does not support suspend functions: ${method.name}",
+            )
+        }
+
         val acknowledgment = joinPoint.args.filterIsInstance<Acknowledgment>().firstOrNull()
         val groupId = containerCustomizer.resolveGroupId(method = method)
 
