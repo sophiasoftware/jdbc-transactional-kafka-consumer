@@ -11,6 +11,7 @@ import org.aspectj.lang.reflect.MethodSignature
 import org.slf4j.MDC
 import org.springframework.core.KotlinDetector
 import org.springframework.kafka.support.Acknowledgment
+import org.springframework.transaction.UnexpectedRollbackException
 import org.springframework.transaction.support.TransactionTemplate
 
 private val logger = KotlinLogging.logger {}
@@ -48,25 +49,41 @@ class Aspect(
             return joinPoint.proceed()
         }
 
-        return transactionTemplate
-            .execute {
-                logger.info { "Opening transaction" }
-                logger.debug { "Executing join point" }
-                val result = joinPoint.proceed()
+        try {
+            return transactionTemplate
+                .execute {
+                    logger.info { "Opening transaction" }
+                    logger.debug { "Executing join point" }
+                    val result =
+                        try {
+                            joinPoint.proceed()
+                        } catch (exception: Throwable) {
+                            logger.error(exception) {
+                                "Join point ${method.name} threw an exception, marking transaction as rollback-only"
+                            }
+                            throw exception
+                        }
 
-                logger.debug { "Executed join point, saving offsets for group $groupId: $nextOffsets" }
-                repository.saveAll(groupId = groupId, offsets = nextOffsets)
+                    logger.debug { "Executed join point, saving offsets for group $groupId: $nextOffsets" }
+                    repository.saveAll(groupId = groupId, offsets = nextOffsets)
 
-                logger.info { "Saved offsets, closing transaction and returning result" }
-                result
-            }.also {
-                acknowledgment
-                    ?.also { logger.info { "Sending offset acknowledgment for group $groupId" } }
-                    ?.acknowledge()
-            }.also {
-                MDC.remove("jtkc-method")
-                MDC.remove("jtkc-group-id")
+                    logger.info { "Saved offsets, closing transaction and returning result" }
+                    result
+                }.also {
+                    acknowledgment
+                        ?.also { logger.info { "Sending offset acknowledgment for group $groupId" } }
+                        ?.acknowledge()
+                }
+        } catch (exception: UnexpectedRollbackException) {
+            logger.error(exception) {
+                "Transaction for method ${method.name} was rolled back because it was already marked " +
+                    "rollback-only; see preceding log entries for the exception that originally caused this"
             }
+            throw exception
+        } finally {
+            MDC.remove("jtkc-method")
+            MDC.remove("jtkc-group-id")
+        }
     }
 
     private fun extractNextOffsets(joinPoint: ProceedingJoinPoint): Map<TopicPartition, Long> {

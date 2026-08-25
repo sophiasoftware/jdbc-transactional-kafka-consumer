@@ -1,8 +1,10 @@
 package nl.sophiasoftware.jdbctransactionalkafkaconsumer
 
 import assertk.assertFailure
+import assertk.assertThat
 import assertk.assertions.hasMessage
 import assertk.assertions.isInstanceOf
+import assertk.assertions.isNull
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -13,7 +15,9 @@ import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.reflect.MethodSignature
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.slf4j.MDC
 import org.springframework.kafka.support.Acknowledgment
+import org.springframework.transaction.UnexpectedRollbackException
 import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionTemplate
 
@@ -143,6 +147,37 @@ class AspectTest {
         aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint)
 
         verify { acknowledgment.acknowledge() }
+    }
+
+    @Test
+    fun `propagates exception thrown by listener instead of swallowing it`() {
+        val listenerException = RuntimeException("listener boom")
+        every { joinPoint.proceed() } throws listenerException
+
+        assertFailure { aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint) }
+            .isInstanceOf(RuntimeException::class)
+            .hasMessage("listener boom")
+    }
+
+    @Test
+    fun `propagates UnexpectedRollbackException instead of swallowing it`() {
+        val rollbackException =
+            UnexpectedRollbackException("Transaction rolled back because it has been marked as rollback-only")
+        every { transactionTemplate.execute(any<TransactionCallback<Any?>>()) } throws rollbackException
+
+        assertFailure { aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint) }
+            .isInstanceOf(UnexpectedRollbackException::class)
+            .hasMessage("Transaction rolled back because it has been marked as rollback-only")
+    }
+
+    @Test
+    fun `clears MDC context even when listener throws`() {
+        every { joinPoint.proceed() } throws RuntimeException("listener boom")
+
+        assertFailure { aspect.aroundTransactionalKafkaListener(joinPoint = joinPoint) }
+
+        assertThat(MDC.get("jtkc-method")).isNull()
+        assertThat(MDC.get("jtkc-group-id")).isNull()
     }
 }
 
